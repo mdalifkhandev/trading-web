@@ -2,13 +2,16 @@ import type { ReactNode } from "react";
 
 type PrimaryButtonProps = {
   children: ReactNode;
+  type?: "button" | "submit";
+  disabled?: boolean;
 };
 
-export function PrimaryButton({ children }: PrimaryButtonProps) {
+export function PrimaryButton({ children, type = "submit", disabled }: PrimaryButtonProps) {
   return (
     <button
-      className="grid h-[52px] w-full grid-cols-[1fr_44px] items-center rounded-full bg-[#35ce78] p-1 text-base font-semibold text-white transition hover:-translate-y-px hover:bg-[#18b85f]"
-      type="button"
+      className="grid h-[52px] w-full grid-cols-[1fr_44px] items-center rounded-full bg-[#35ce78] p-1 text-base font-semibold text-white transition hover:-translate-y-px hover:bg-[#18b85f] disabled:cursor-not-allowed disabled:opacity-70"
+      type={type}
+      disabled={disabled}
     >
       <span>{children}</span>
       <span

@@ -15,8 +15,11 @@ export default function ForgotPasswordPage() {
 
       <form className="grid gap-4">
         <AuthField label="Email Address" type="email" placeholder="Enter your email" icon="✉" />
+        <p className="text-sm text-amber-600">
+          Forgot password backend endpoint is not available yet.
+        </p>
         <Link href="/otp" className="block">
-          <PrimaryButton>Send OTP</PrimaryButton>
+          <PrimaryButton type="button">Send OTP</PrimaryButton>
         </Link>
       </form>
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { useAuthStore } from "../store/auth-store";
 
 const navItems = [
   { label: "Dashboard", icon: "▦", href: "/home" },
@@ -13,6 +14,7 @@ const navItems = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const logout = useAuthStore((state) => state.logout);
 
   return (
     <div className="grid min-h-screen grid-cols-1 bg-[#f5f7f9] lg:grid-cols-[220px_minmax(0,1fr)]">
@@ -55,6 +57,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <p className="mb-2 px-1 text-[11px] text-slate-400">Session</p>
           <Link
             href="/login"
+            onClick={logout}
             className="flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-slate-900 outline-none transition hover:bg-white hover:text-[#10c66f] focus-visible:ring-2 focus-visible:ring-[#10c66f]"
           >
             <span className="grid size-6 place-items-center rounded-md bg-white text-sm" aria-hidden="true">

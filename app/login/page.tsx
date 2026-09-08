@@ -6,24 +6,29 @@ import { PrimaryButton } from "../components/PrimaryButton";
 export default function LoginPage() {
   return (
     <AuthShell showBack={false}>
-      <div className="auth-copy">
-        <h1>Sign In</h1>
-        <p>Access your TradeLMT execution workspace.</p>
+      <div>
+        <h1 className="m-0 text-4xl font-medium tracking-normal text-[#06090f]">Sign In</h1>
+        <p className="mb-6 mt-3 text-[15px] text-neutral-500">
+          Access your TradeLMT execution workspace.
+        </p>
       </div>
 
-      <form className="auth-form">
+      <form className="grid gap-4">
         <AuthField label="Email Address" type="email" placeholder="Enter your email" icon="✉" />
         <AuthField label="Password" type="password" placeholder="••••••••" icon="▣" trailing="⌧" />
-        <Link className="forgot-link" href="/forgot-password">
+        <Link className="-mt-2 justify-self-end text-sm text-[#5f7191]" href="/forgot-password">
           Forgot Password?
         </Link>
-        <Link href="/home" className="button-link">
+        <Link href="/home" className="block">
           <PrimaryButton>Login</PrimaryButton>
         </Link>
       </form>
 
-      <p className="auth-switch">
-        New to the platform? <Link href="/signup">Create an account</Link>
+      <p className="mt-7 text-center text-[15px] text-neutral-500">
+        New to the platform?{" "}
+        <Link className="font-semibold text-[#12b85b]" href="/signup">
+          Create an account
+        </Link>
       </p>
     </AuthShell>
   );

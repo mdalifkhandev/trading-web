@@ -6,20 +6,25 @@ import { PrimaryButton } from "../components/PrimaryButton";
 export default function ForgotPasswordPage() {
   return (
     <AuthShell>
-      <div className="auth-copy">
-        <h1>Reset Password</h1>
-        <p>Enter your email and we will send an OTP code.</p>
+      <div>
+        <h1 className="m-0 text-4xl font-medium tracking-normal text-[#06090f]">Reset Password</h1>
+        <p className="mb-6 mt-3 text-[15px] text-neutral-500">
+          Enter your email and we will send an OTP code.
+        </p>
       </div>
 
-      <form className="auth-form">
+      <form className="grid gap-4">
         <AuthField label="Email Address" type="email" placeholder="Enter your email" icon="✉" />
-        <Link href="/otp" className="button-link">
+        <Link href="/otp" className="block">
           <PrimaryButton>Send OTP</PrimaryButton>
         </Link>
       </form>
 
-      <p className="auth-switch">
-        Remember password? <Link href="/login">Back to login</Link>
+      <p className="mt-7 text-center text-[15px] text-neutral-500">
+        Remember password?{" "}
+        <Link className="font-semibold text-[#12b85b]" href="/login">
+          Back to login
+        </Link>
       </p>
     </AuthShell>
   );

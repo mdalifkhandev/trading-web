@@ -1,97 +1,122 @@
-import { AppShell } from "../components/AppShell";
+"use client";
 
-const brokers = [
+import { useState } from "react";
+import { AppShell } from "../components/AppShell";
+import {
+  BrokerConnection,
+  useBrokerConnectMutation,
+  useBrokerConnectionsQuery
+} from "../lib/dashboard";
+
+const brokerFallbacks: BrokerConnection[] = [
+  makeBroker("thinkorswim", "Thinkorswim", "Equities & Options", "thinkorswim"),
+  makeBroker("tradovate", "Tradovate", "Futures Execution", "tradovate"),
+  makeBroker("interactive-brokers", "Interactive Brokers", "Global Multi-Asset", "interactive-brokers"),
+  makeBroker("tradingview", "TradingView", "Chart Integration", "tradingview"),
+  makeBroker("ninjatrader", "NinjaTrader", "Desktop Terminal", "ninjatrader"),
+  makeBroker("tastytrade", "Tastytrade", "High Probability Trading", "tastytrade"),
+  makeBroker("robinhood", "Robinhood", "Simple Execution", "robinhood"),
   {
-    name: "Thinkorswim",
-    subtitle: "Equities & Options",
-    logo: "✳",
-    logoClass: "text-sky-500",
-    status: "NOT CONNECTED",
-      action: "CONNECT"
-  },
-  {
-    name: "Tradovate",
-    subtitle: "Futures Execution",
-    logo: "▣",
-    logoClass: "bg-blue-600 text-white",
-    status: "NOT CONNECTED",
-    action: "CONNECT"
-  },
-  {
-    name: "Interactive Brokers",
-    subtitle: "Global Multi-Asset",
-    logo: "◖",
-    logoClass: "text-red-600",
-    status: "NOT CONNECTED",
-    action: "CONNECT"
-  },
-  {
-    name: "TradingView",
-    subtitle: "Chart Integration",
-    logo: "TV",
-    logoClass: "text-black",
-    status: "NOT CONNECTED",
-    action: "CONNECT"
-  },
-  {
-    name: "NinjaTrader",
-    subtitle: "Desktop Terminal",
-    logo: "NT",
-    logoClass: "bg-black text-white",
-    status: "NOT CONNECTED",
-    action: "CONNECT"
-  },
-  {
-    name: "Tastytrade",
-    subtitle: "High Probability Trading",
-    logo: "▣",
-    logoClass: "bg-blue-600 text-white",
-    status: "NOT CONNECTED",
-    action: "CONNECT"
-  },
-  {
-    name: "Robinhood",
-    subtitle: "Simple Execution",
-    logo: "Robinhood",
-    logoClass: "bg-lime-300 text-[6px] text-lime-950",
-    status: "NOT CONNECTED",
-    action: "CONNECT"
-  },
-  {
-    name: "Next Gateway",
-    subtitle: "Community Requested",
-    logo: "▣",
-    logoClass: "bg-blue-300 text-white",
-    status: "COMING SOON",
-    action: "",
-    disabled: true
+    ...makeBroker("next-gateway", "Next Gateway", "Community Requested", "next-gateway"),
+    status: "coming_soon",
+    statusLabel: "COMING SOON",
+    actionLabel: "COMING SOON",
+    isEnabled: false
   }
 ];
 
 export default function ConnectPage() {
+  const brokersQuery = useBrokerConnectionsQuery();
+  const connectMutation = useBrokerConnectMutation();
+  const [pendingBrokerId, setPendingBrokerId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const brokers = brokersQuery.data?.brokers?.length ? brokersQuery.data.brokers : brokerFallbacks;
+  const isInitialLoading = brokersQuery.isLoading && !brokersQuery.data;
+
+  async function handleBrokerAction(broker: BrokerConnection) {
+    if (!broker.isEnabled || broker.status === "coming_soon") {
+      setNotice(`${broker.displayName} integration is coming soon.`);
+      return;
+    }
+
+    setNotice(null);
+    setPendingBrokerId(broker.id);
+
+    try {
+      const result = await connectMutation.mutateAsync(broker.id);
+      setNotice(result.message);
+
+      if (result.action === "redirect" && result.url) {
+        window.location.href = result.url;
+        return;
+      }
+
+      if (result.action === "manage" && result.url) {
+        window.open(resolveBackendUrl(result.url), "_blank", "noopener,noreferrer");
+      }
+    } catch {
+      setNotice("Broker connection start kora jacche na. Login/session check kore abar try korun.");
+    } finally {
+      setPendingBrokerId(null);
+    }
+  }
+
   return (
     <AppShell>
       <section className="min-h-[calc(100vh-44px)] bg-[#f7f7fb] px-0 pb-6 pt-8">
-        <div className="mb-6">
-          <h1 className="text-[26px] font-medium leading-tight tracking-normal text-[#101827]">
-            Broker Gateway
-          </h1>
-          <p className="mt-2 max-w-[680px] text-[15px] leading-5 text-[#667085]">
-            Establish secure, encrypted connections to your primary trading venues.
-            <br />
-            Professional grade API bridges ensure millisecond execution sync.
-          </p>
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-[26px] font-medium leading-tight tracking-normal text-[#101827]">
+              Broker Gateway
+            </h1>
+            <p className="mt-2 max-w-[680px] text-[15px] leading-5 text-[#667085]">
+              Establish secure, encrypted connections to your primary trading venues.
+              <br />
+              Professional grade API bridges ensure millisecond execution sync.
+            </p>
+          </div>
+
+          {brokersQuery.data ? (
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-emerald-600">
+              {brokersQuery.data.connectedCount} connected
+            </span>
+          ) : null}
         </div>
+
+        {notice ? (
+          <div className="mb-4 rounded-[10px] border border-blue-200 bg-blue-50 px-4 py-3 text-[13px] text-blue-700">
+            {notice}
+          </div>
+        ) : null}
+
+        {brokersQuery.isError ? (
+          <div className="mb-4 rounded-[10px] border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-600">
+            Broker API load hoy nai. Backend run ache kina and login token ache kina check korun.
+          </div>
+        ) : null}
 
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           {brokers.slice(0, 6).map((broker) => (
-            <BrokerCard key={broker.name} broker={broker} />
+            <BrokerCard
+              broker={broker}
+              isLoading={isInitialLoading}
+              isPending={pendingBrokerId === broker.id}
+              key={broker.id}
+              onAction={handleBrokerAction}
+            />
           ))}
         </div>
 
         <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           {brokers.slice(6).map((broker) => (
-            <BrokerCard key={broker.name} broker={broker} />
+            <BrokerCard
+              broker={broker}
+              isLoading={isInitialLoading}
+              isPending={pendingBrokerId === broker.id}
+              key={broker.id}
+              onAction={handleBrokerAction}
+            />
           ))}
         </div>
 
@@ -124,40 +149,128 @@ export default function ConnectPage() {
   );
 }
 
-function BrokerCard({ broker }: { broker: (typeof brokers)[number] }) {
+function BrokerCard({
+  broker,
+  isLoading,
+  isPending,
+  onAction
+}: {
+  broker: BrokerConnection;
+  isLoading: boolean;
+  isPending: boolean;
+  onAction: (broker: BrokerConnection) => void;
+}) {
+  const logo = getBrokerLogo(broker);
+  const isDisabled = !broker.isEnabled || broker.status === "coming_soon" || isPending || isLoading;
+
   return (
     <article
       className={
-        broker.disabled
+        !broker.isEnabled || broker.status === "coming_soon"
           ? "flex min-h-[174px] flex-col rounded-[10px] border border-slate-200 bg-white/45 p-4 opacity-70 shadow-[0_3px_10px_rgba(15,23,42,0.04)]"
-          : "flex min-h-[174px] flex-col rounded-[10px] border border-slate-200 bg-white p-4 shadow-[0_3px_10px_rgba(15,23,42,0.06)]"
+          : "flex min-h-[174px] flex-col rounded-[10px] border border-slate-200 bg-white p-4 shadow-[0_3px_10px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-[0_10px_20px_rgba(15,23,42,0.08)]"
       }
     >
       <div className="flex items-start justify-between gap-3">
         <span
-          className={`grid size-8 place-items-center overflow-hidden text-[18px] font-black leading-none ${broker.logoClass}`}
+          className={`grid size-8 place-items-center overflow-hidden text-[18px] font-black leading-none ${logo.className}`}
         >
-          {broker.logo}
+          {logo.text}
         </span>
-        <span className="rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[9px] font-medium uppercase tracking-wide text-slate-500">
-          • {broker.status}
+        <span className={getStatusClassName(broker.status)}>
+          • {isPending ? "WAITING FOR AUTH" : broker.statusLabel}
         </span>
       </div>
 
       <div className="mt-3">
-        <h2 className="text-[15px] font-medium text-[#101827]">{broker.name}</h2>
-        <p className="mt-0.5 text-[12px] text-[#667085]">{broker.subtitle}</p>
+        <h2 className="text-[15px] font-medium text-[#101827]">
+          {isLoading ? <span className="block h-4 w-28 animate-pulse rounded bg-slate-200" /> : broker.displayName}
+        </h2>
+        <p className="mt-0.5 text-[12px] text-[#667085]">
+          {isLoading ? <span className="block h-3 w-32 animate-pulse rounded bg-slate-100" /> : broker.subtitle}
+        </p>
       </div>
 
-      {broker.action ? (
-        <button
-          className="mt-auto h-7 rounded-[6px] border border-slate-300 bg-slate-50 px-3 text-[10px] font-medium uppercase tracking-[0.12em] text-slate-500"
-          type="button"
-        >
-      
-          {broker.action}
-        </button>
-      ) : null}
+      <button
+        className="mt-auto h-7 rounded-[6px] border border-slate-300 bg-slate-50 px-3 text-[10px] font-medium uppercase tracking-[0.12em] text-slate-500 transition enabled:hover:border-emerald-300 enabled:hover:bg-emerald-50 enabled:hover:text-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+        disabled={isDisabled}
+        onClick={() => onAction(broker)}
+        type="button"
+      >
+        {isPending ? "WAITING FOR AUTH..." : broker.actionLabel}
+      </button>
     </article>
   );
+}
+
+function makeBroker(
+  id: string,
+  displayName: string,
+  subtitle: string,
+  logoKey: string
+): BrokerConnection {
+  return {
+    id,
+    broker: id,
+    displayName,
+    subtitle,
+    logoKey,
+    status: "not_connected",
+    statusLabel: "NOT CONNECTED",
+    actionLabel: "CONNECT",
+    isEnabled: true,
+    connectUrl: null,
+    manageUrl: null
+  };
+}
+
+function getBrokerLogo(broker: BrokerConnection) {
+  const key = broker.logoKey || broker.broker || broker.id;
+
+  if (key.includes("thinkorswim")) {
+    return { text: "✳", className: "text-sky-500" };
+  }
+
+  if (key.includes("tradovate") || key.includes("tastytrade") || key.includes("next")) {
+    return { text: "▣", className: key.includes("next") ? "bg-blue-300 text-white" : "bg-blue-600 text-white" };
+  }
+
+  if (key.includes("interactive")) {
+    return { text: "◖", className: "text-red-600" };
+  }
+
+  if (key.includes("tradingview")) {
+    return { text: "TV", className: "text-black" };
+  }
+
+  if (key.includes("ninjatrader")) {
+    return { text: "NT", className: "bg-black text-white" };
+  }
+
+  if (key.includes("robinhood")) {
+    return { text: "Robinhood", className: "bg-lime-300 text-[6px] text-lime-950" };
+  }
+
+  return { text: broker.displayName.slice(0, 2).toUpperCase(), className: "bg-slate-100 text-slate-700" };
+}
+
+function getStatusClassName(status: BrokerConnection["status"]) {
+  if (status === "connected") {
+    return "rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[9px] font-medium uppercase tracking-wide text-emerald-600";
+  }
+
+  if (status === "coming_soon") {
+    return "rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[9px] font-medium uppercase tracking-wide text-slate-400";
+  }
+
+  return "rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[9px] font-medium uppercase tracking-wide text-slate-500";
+}
+
+function resolveBackendUrl(pathOrUrl: string) {
+  if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
+    return pathOrUrl;
+  }
+
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5050";
+  return `${baseUrl}${pathOrUrl.startsWith("/") ? pathOrUrl : `/${pathOrUrl}`}`;
 }

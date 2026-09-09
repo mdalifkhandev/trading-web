@@ -17,8 +17,15 @@ export type LockoutStatus =
 
 export type BrokerConnection = {
   id: string;
+  broker: string;
   displayName: string;
+  subtitle: string;
   status: "connected" | "not_connected" | "coming_soon";
+  statusLabel: string;
+  actionLabel: "MANAGE" | "CONNECT" | "COMING SOON";
+  isEnabled: boolean;
+  connectUrl: string | null;
+  manageUrl: string | null;
   logoKey: string;
 };
 
@@ -26,6 +33,15 @@ export type BrokerConnectionsResponse = {
   brokers: BrokerConnection[];
   connectedCount: number;
   updatedAt: string | null;
+};
+
+export type BrokerConnectionAction = {
+  id: string;
+  broker: string;
+  displayName: string;
+  action: "redirect" | "manage" | "unavailable";
+  url: string | null;
+  message: string;
 };
 
 export type JournalTrade = {
@@ -124,6 +140,22 @@ export function useBrokerConnectionsQuery() {
     queryFn: async () => {
       const response = await api.get<BrokerConnectionsResponse>("/broker-connections");
       return response.data;
+    }
+  });
+}
+
+export function useBrokerConnectMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (brokerId: string) => {
+      const response = await api.get<BrokerConnectionAction>(
+        `/broker-connections/${brokerId}/connect`
+      );
+      return response.data;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["broker-connections"] });
     }
   });
 }

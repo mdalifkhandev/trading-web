@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "./api";
 import type { AuthUser } from "../store/auth-store";
 
@@ -30,6 +30,43 @@ export function useSignupMutation() {
     mutationFn: async (input: SignupInput) => {
       const response = await api.post<AuthResponse>("/auth/register", input);
       return response.data;
+    }
+  });
+}
+
+export function useChangePasswordMutation() {
+  return useMutation({
+    mutationFn: async (input: { oldPassword: string; newPassword: string; confirmPassword: string }) => {
+      const response = await api.patch("/auth/change-password", input);
+      return response.data;
+    }
+  });
+}
+
+export function useLogoutAllSessionsMutation() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async () => {
+      const response = await api.post("/auth/logout-all");
+      return response.data;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["settings"] });
+    }
+  });
+}
+
+export function useLogoutMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const response = await api.post("/auth/logout");
+      return response.data;
+    },
+    onSuccess: async () => {
+      await queryClient.clear();
     }
   });
 }

@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import type { ReactNode, FormEvent } from "react";
+import { useState } from "react";
 import { useAuthStore } from "../store/auth-store";
+import { useSettingsQuery } from "../lib/settings";
+import { useUpdateProfileMutation, getErrorMessage } from "../lib/auth";
 
 const navItems = [
   { label: "Dashboard", icon: "▦", href: "/home" },
@@ -70,18 +73,120 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <main className="min-w-0 px-4 pb-8 pt-0 lg:px-8">
         <header className="flex h-11 items-center justify-end">
-          <div className="flex items-center gap-2">
-            <span className="text-right leading-tight">
-              <strong className="block text-sm font-medium text-neutral-900">john doe</strong>
-              <small className="block text-xs text-neutral-500">Premium User</small>
-            </span>
-            <span className="grid size-9 place-items-center rounded-full border border-neutral-400 bg-[linear-gradient(135deg,#f1d0bd,#374151)] text-xs font-bold text-white">
-              JD
-            </span>
-          </div>
+          <ProfileHeader />
         </header>
         {children}
       </main>
     </div>
+  );
+}
+
+function ProfileHeader() {
+  const { data: settings } = useSettingsQuery();
+  const updateProfile = useUpdateProfileMutation();
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  
+  const [formData, setFormData] = useState({ name: "", email: "" });
+
+  const user = settings?.user;
+  const name = user?.name || "Unknown User";
+  const initials = name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+  const role = user?.subscription ? `${user.subscription.replaceAll("_", " ")} User` : "User";
+
+  function openModal() {
+    setFormData({ name: user?.name || "", email: user?.email || "" });
+    setIsEditing(false);
+    setIsModalOpen(true);
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!isEditing) {
+      setIsEditing(true);
+      return;
+    }
+    
+    try {
+      await updateProfile.mutateAsync({ name: formData.name });
+      setIsEditing(false);
+      window.alert("Profile updated successfully!");
+    } catch (error) {
+      window.alert(getErrorMessage(error));
+    }
+  }
+
+  return (
+    <>
+      <button 
+        onClick={openModal}
+        className="flex items-center gap-2 rounded-lg outline-none transition hover:opacity-80 focus-visible:ring-2 focus-visible:ring-[#10c66f]"
+      >
+        <span className="text-right leading-tight text-left">
+          <strong className="block text-sm font-medium text-neutral-900">{name}</strong>
+          <small className="block text-xs text-neutral-500 capitalize">{role}</small>
+        </span>
+        {user?.avatar ? (
+          <img src={user.avatar} alt={name} className="size-9 rounded-full object-cover border border-neutral-300" />
+        ) : (
+          <span className="grid size-9 place-items-center rounded-full border border-neutral-400 bg-[linear-gradient(135deg,#f1d0bd,#374151)] text-xs font-bold text-white">
+            {initials}
+          </span>
+        )}
+      </button>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl">
+            <h3 className="mb-4 text-xl font-bold">Your Profile</h3>
+            <form onSubmit={handleSubmit} className="grid gap-4">
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-slate-700">Full Name</label>
+                <input
+                  type="text"
+                  required
+                  readOnly={!isEditing}
+                  className={`w-full rounded-[6px] border border-slate-200 px-3 py-2 text-sm outline-none transition ${isEditing ? "focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white" : "bg-slate-50 text-slate-500 cursor-not-allowed"}`}
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-slate-700">Email (Cannot be changed)</label>
+                <input
+                  type="email"
+                  readOnly
+                  className="w-full rounded-[6px] border border-slate-200 px-3 py-2 text-sm outline-none bg-slate-50 text-slate-500 cursor-not-allowed"
+                  value={formData.email}
+                />
+              </div>
+              
+              <div className="mt-2 flex justify-end gap-3">
+                <button
+                  type="button"
+                  className="rounded-[6px] px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+                  onClick={() => setIsModalOpen(false)}
+                >
+                  Close
+                </button>
+                <button
+                  type="submit"
+                  disabled={updateProfile.isPending}
+                  className="rounded-[6px] bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-70 min-w-[80px]"
+                >
+                  {updateProfile.isPending ? "Saving..." : isEditing ? "Update" : "Edit"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

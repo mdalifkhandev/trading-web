@@ -43,6 +43,20 @@ export function useChangePasswordMutation() {
   });
 }
 
+export function useUpdateProfileMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: { name?: string; email?: string; avatar?: string }) => {
+      const response = await api.patch("/auth/me", input);
+      return response.data;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["settings"] });
+    }
+  });
+}
+
 export function useLogoutAllSessionsMutation() {
   const queryClient = useQueryClient();
   

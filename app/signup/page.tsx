@@ -66,7 +66,6 @@ export default function SignupPage() {
           name="password"
           placeholder="Create password"
           icon="▣"
-          trailing="⌧"
           value={password}
           required
           minLength={8}

@@ -56,7 +56,6 @@ export default function LoginPage() {
           name="password"
           placeholder="••••••••"
           icon="▣"
-          trailing="⌧"
           value={password}
           required
           onChange={setPassword}

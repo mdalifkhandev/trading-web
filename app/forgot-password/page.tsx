@@ -1,9 +1,32 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { AuthField } from "../components/AuthField";
 import { AuthShell } from "../components/AuthShell";
 import { PrimaryButton } from "../components/PrimaryButton";
+import { getErrorMessage, useForgotPasswordMutation } from "../lib/auth";
 
 export default function ForgotPasswordPage() {
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
+  const router = useRouter();
+  const forgotPassword = useForgotPasswordMutation();
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setMessage(null);
+
+    try {
+      const result = await forgotPassword.mutateAsync({ email });
+      setMessage(result.message);
+      router.push(`/otp?email=${encodeURIComponent(email)}`);
+    } catch (error) {
+      setMessage(getErrorMessage(error));
+    }
+  }
+
   return (
     <AuthShell>
       <div>
@@ -13,14 +36,21 @@ export default function ForgotPasswordPage() {
         </p>
       </div>
 
-      <form className="grid gap-4">
-        <AuthField label="Email Address" type="email" placeholder="Enter your email" icon="✉" />
-        <p className="text-sm text-amber-600">
-          Forgot password backend endpoint is not available yet.
-        </p>
-        <Link href="/otp" className="block">
-          <PrimaryButton type="button">Send OTP</PrimaryButton>
-        </Link>
+      <form className="grid gap-4" onSubmit={handleSubmit}>
+        <AuthField
+          icon="✉"
+          label="Email Address"
+          name="email"
+          onChange={setEmail}
+          placeholder="Enter your email"
+          required
+          type="email"
+          value={email}
+        />
+        {message ? <p className="text-sm text-amber-600">{message}</p> : null}
+        <PrimaryButton type="submit">
+          {forgotPassword.isPending ? "Sending..." : "Send OTP"}
+        </PrimaryButton>
       </form>
 
       <p className="mt-7 text-center text-[15px] text-neutral-500">

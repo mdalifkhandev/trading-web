@@ -43,6 +43,41 @@ export function useChangePasswordMutation() {
   });
 }
 
+export function useForgotPasswordMutation() {
+  return useMutation({
+    mutationFn: async (input: { email: string }) => {
+      const response = await api.post<{ message: string }>("/auth/forgot-password", input);
+      return response.data;
+    }
+  });
+}
+
+export function useVerifyForgotPasswordOtpMutation() {
+  return useMutation({
+    mutationFn: async (input: { email: string; otp: string }) => {
+      const response = await api.post<{ verified: boolean; resetToken: string }>(
+        "/auth/forgot-password/verify-otp",
+        input
+      );
+      return response.data;
+    }
+  });
+}
+
+export function useResetForgotPasswordMutation() {
+  return useMutation({
+    mutationFn: async (input: {
+      email: string;
+      resetToken: string;
+      newPassword: string;
+      confirmPassword: string;
+    }) => {
+      const response = await api.post<{ message: string }>("/auth/forgot-password/reset", input);
+      return response.data;
+    }
+  });
+}
+
 export function useUpdateProfileMutation() {
   const queryClient = useQueryClient();
 

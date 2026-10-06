@@ -29,14 +29,14 @@ export default function ConnectPage() {
   const brokersQuery = useBrokerConnectionsQuery();
   const connectMutation = useBrokerConnectMutation();
   const [pendingBrokerId, setPendingBrokerId] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ message: string; url?: string } | null>(null);
 
   const brokers = brokersQuery.data?.brokers?.length ? brokersQuery.data.brokers : brokerFallbacks;
   const isInitialLoading = brokersQuery.isLoading && !brokersQuery.data;
 
   async function handleBrokerAction(broker: BrokerConnection) {
     if (!broker.isEnabled || broker.status === "coming_soon") {
-      setNotice(`${broker.displayName} integration is coming soon.`);
+      setNotice({ message: `${broker.displayName} integration is coming soon.` });
       return;
     }
 
@@ -45,18 +45,30 @@ export default function ConnectPage() {
 
     try {
       const result = await connectMutation.mutateAsync(broker.id);
-      setNotice(result.message);
 
       if (result.action === "redirect" && result.url) {
-        window.location.href = result.url;
+        const targetUrl = resolveBackendUrl(result.url);
+        window.open(targetUrl, "_blank", "noopener,noreferrer");
+        setNotice({
+          message: result.message,
+          url: targetUrl
+        });
         return;
       }
 
       if (result.action === "manage" && result.url) {
-        window.open(resolveBackendUrl(result.url), "_blank", "noopener,noreferrer");
+        const targetUrl = resolveBackendUrl(result.url);
+        window.open(targetUrl, "_blank", "noopener,noreferrer");
+        setNotice({
+          message: result.message,
+          url: targetUrl
+        });
+        return;
       }
+
+      setNotice({ message: result.message });
     } catch {
-      setNotice("Broker connection start kora jacche na. Login/session check kore abar try korun.");
+      setNotice({ message: "Broker connection start kora jacche na. Login/session check kore abar try korun." });
     } finally {
       setPendingBrokerId(null);
     }
@@ -85,8 +97,18 @@ export default function ConnectPage() {
         </div>
 
         {notice ? (
-          <div className="mb-4 rounded-[10px] border border-blue-200 bg-blue-50 px-4 py-3 text-[13px] text-blue-700">
-            {notice}
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-blue-200 bg-blue-50 px-4 py-3 text-[13px] text-blue-700">
+            <span>{notice.message}</span>
+            {notice.url ? (
+              <a
+                href={notice.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 font-semibold text-blue-800 underline hover:text-blue-950"
+              >
+                Open in new tab ↗
+              </a>
+            ) : null}
           </div>
         ) : null}
 
